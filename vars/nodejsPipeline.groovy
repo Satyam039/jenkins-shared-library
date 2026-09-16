@@ -16,19 +16,23 @@ def call(Map config = [:]) {
             disableConcurrentBuilds()
         }
 
-        stages {
-
-            stage('Checkout') {
-                steps {
-                    sh '''
-                        rm -rf ./*
-                        git -c credential.helper= clone \
-                          --branch main \
-                          --single-branch \
-                          https://github.com/Satyam039/website-downtime-alert.git .
-                    '''
-                }
-            }
+     stage('Checkout') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'github-creds',
+            usernameVariable: 'GIT_USERNAME',
+            passwordVariable: 'GIT_TOKEN'
+        )]) {
+            sh '''
+                rm -rf ./*
+                git clone \
+                  --branch main \
+                  --single-branch \
+                  https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/Satyam039/website-downtime-alert.git .
+            '''
+        }
+    }
+}
 
             stage('Environment') {
                 steps {
