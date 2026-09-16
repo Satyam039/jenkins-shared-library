@@ -16,13 +16,12 @@ def call(Map config = [:]) {
             disableConcurrentBuilds()
         }
 
-        stages {
-
-            stage('Checkout') {
-                steps {
-                    checkout scm
-                }
-            }
+      stage('Checkout') {
+    steps {
+        git branch: 'main',
+            url: 'https://github.com/Satyam039/website-downtime-alert.git'
+    }
+}
 
             stage('Environment') {
                 steps {
