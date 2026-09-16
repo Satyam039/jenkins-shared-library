@@ -20,14 +20,20 @@ def call(Map config = [:]) {
 
             stage('Checkout') {
                 steps {
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        userRemoteConfigs: [[
-                            url: 'https://github.com/Satyam039/website-downtime-alert.git',
-                            credentialsId: 'github-creds'
-                        ]]
-                    ])
+                    sh '''
+                        rm -rf ./*
+
+                        curl -L \
+                          https://github.com/Satyam039/website-downtime-alert/archive/refs/heads/main.tar.gz \
+                          -o repo.tar.gz
+
+                        tar -xzf repo.tar.gz --strip-components=1
+
+                        rm -f repo.tar.gz
+
+                        echo "Repository downloaded successfully"
+                        ls -la
+                    '''
                 }
             }
 
