@@ -16,38 +16,11 @@ def call(Map config = [:]) {
             disableConcurrentBuilds()
         }
 
-       stage('Checkout') {
+      stage('Checkout') {
     steps {
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'github-creds',
-                usernameVariable: 'GIT_USERNAME',
-                passwordVariable: 'GIT_TOKEN'
-            )
-        ]) {
-            sh '''
-                rm -rf ./*
-
-                export GIT_ASKPASS="$WORKSPACE/git-askpass.sh"
-
-                cat > "$GIT_ASKPASS" <<'EOF'
-#!/bin/sh
-case "$1" in
-    *Username*) echo "$GIT_USERNAME" ;;
-    *Password*) echo "$GIT_TOKEN" ;;
-esac
-EOF
-
-                chmod +x "$GIT_ASKPASS"
-
-                git -c credential.helper= clone \
-                  --branch main \
-                  --single-branch \
-                  https://github.com/Satyam039/website-downtime-alert.git .
-
-                rm -f "$GIT_ASKPASS"
-            '''
-        }
+        git branch: 'main',
+            url: 'https://github.com/Satyam039/website-downtime-alert.git',
+            credentialsId: 'github-creds'
     }
 }
 
