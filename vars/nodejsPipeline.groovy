@@ -16,12 +16,16 @@ def call(Map config = [:]) {
             disableConcurrentBuilds()
         }
 
-      stage('Checkout') {
-    steps {
-        git branch: 'main',
-            url: 'https://github.com/Satyam039/website-downtime-alert.git'
-    }
-}
+        stages {
+
+            stage('Checkout') {
+                steps {
+                    git(
+                        branch: 'main',
+                        url: 'https://github.com/Satyam039/website-downtime-alert.git'
+                    )
+                }
+            }
 
             stage('Environment') {
                 steps {
@@ -59,6 +63,7 @@ def call(Map config = [:]) {
         }
 
         post {
+
             success {
                 echo "BUILD SUCCESS: ${APP_NAME}"
             }
