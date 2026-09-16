@@ -16,19 +16,28 @@ def call(Map config = [:]) {
             disableConcurrentBuilds()
         }
 
-      stage('Checkout') {
-    steps {
-        git branch: 'main',
-            url: 'https://github.com/Satyam039/website-downtime-alert.git',
-            credentialsId: 'github-creds'
-    }
-}
+        stages {
+
+            stage('Checkout') {
+                steps {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[
+                            url: 'https://github.com/Satyam039/website-downtime-alert.git',
+                            credentialsId: 'github-creds'
+                        ]]
+                    ])
+                }
+            }
 
             stage('Environment') {
                 steps {
                     sh '''
                         echo "Application: $APP_NAME"
+                        echo "Node Version:"
                         node --version
+                        echo "NPM Version:"
                         npm --version
                     '''
                 }
