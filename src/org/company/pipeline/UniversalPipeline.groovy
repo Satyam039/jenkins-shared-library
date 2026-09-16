@@ -15,70 +15,67 @@ class UniversalPipeline implements Serializable {
         def appName = config.get('appName', 'application')
         def language = config.get('language', 'auto')
 
-        script.pipeline {
+        script.node {
 
-            agent any
+            script.timestamps {
 
-            environment {
-                APP_NAME = "${appName}"
-            }
+                script.timeout(time: 30, unit: 'MINUTES') {
 
-            options {
-                timestamps()
-                timeout(time: 30, unit: 'MINUTES')
-                disableConcurrentBuilds()
-            }
+                    try {
 
-            stages {
+                        script.stage('Environment') {
+                            script.echo "Application: ${appName}"
 
-                stage('Environment') {
-                    steps {
-                        sh '''
-                            echo "Application: $APP_NAME"
-                            echo "Node:"
-                            node --version || true
-                            echo "Java:"
-                            java -version || true
-                            echo "Python:"
-                            python3 --version || true
-                        '''
-                    }
-                }
+                            script.sh '''
+                                echo "Node:"
+                                node --version || true
 
-                stage('Detect Project') {
-                    steps {
-                        script {
+                                echo "NPM:"
+                                npm --version || true
+
+                                echo "Java:"
+                                java -version || true
+
+                                echo "Python:"
+                                python3 --version || true
+                            '''
+                        }
+
+                        script.stage('Detect Project') {
+
                             if (language == 'auto') {
 
-                                if (fileExists('package.json')) {
-                                    env.PROJECT_TYPE = 'nodejs'
+                                if (script.fileExists('package.json')) {
+                                    script.env.PROJECT_TYPE = 'nodejs'
 
-                                } else if (fileExists('pom.xml') || fileExists('build.gradle')) {
-                                    env.PROJECT_TYPE = 'java'
+                                } else if (
+                                    script.fileExists('pom.xml') ||
+                                    script.fileExists('build.gradle')
+                                ) {
+                                    script.env.PROJECT_TYPE = 'java'
 
-                                } else if (fileExists('requirements.txt') || fileExists('pyproject.toml')) {
-                                    env.PROJECT_TYPE = 'python'
+                                } else if (
+                                    script.fileExists('requirements.txt') ||
+                                    script.fileExists('pyproject.toml')
+                                ) {
+                                    script.env.PROJECT_TYPE = 'python'
 
                                 } else {
-                                    env.PROJECT_TYPE = 'unknown'
+                                    script.env.PROJECT_TYPE = 'unknown'
                                 }
 
                             } else {
-                                env.PROJECT_TYPE = language
+                                script.env.PROJECT_TYPE = language
                             }
 
-                            echo "Detected Project: ${env.PROJECT_TYPE}"
+                            script.echo "Detected Project: ${script.env.PROJECT_TYPE}"
                         }
-                    }
-                }
 
-                stage('Install') {
-                    steps {
-                        script {
+                        script.stage('Install') {
 
-                            if (env.PROJECT_TYPE == 'nodejs') {
+                            if (script.env.PROJECT_TYPE == 'nodejs') {
 
-                                sh '''
+                                script.sh '''
                                     if [ -f package-lock.json ]; then
                                         npm ci
                                     else
@@ -86,9 +83,9 @@ class UniversalPipeline implements Serializable {
                                     fi
                                 '''
 
-                            } else if (env.PROJECT_TYPE == 'java') {
+                            } else if (script.env.PROJECT_TYPE == 'java') {
 
-                                sh '''
+                                script.sh '''
                                     if [ -f pom.xml ]; then
                                         mvn dependency:resolve
                                     elif [ -f build.gradle ]; then
@@ -96,35 +93,27 @@ class UniversalPipeline implements Serializable {
                                     fi
                                 '''
 
-                            } else if (env.PROJECT_TYPE == 'python') {
+                            } else if (script.env.PROJECT_TYPE == 'python') {
 
-                                sh '''
+                                script.sh '''
                                     python3 -m venv .venv
                                     . .venv/bin/activate
-
                                     if [ -f requirements.txt ]; then
                                         pip install -r requirements.txt
                                     fi
                                 '''
-
-                            } else {
-                                echo "No installation step configured."
                             }
                         }
-                    }
-                }
 
-                stage('Test') {
-                    steps {
-                        script {
+                        script.stage('Test') {
 
-                            if (env.PROJECT_TYPE == 'nodejs') {
+                            if (script.env.PROJECT_TYPE == 'nodejs') {
 
-                                sh 'npm test --if-present -- --run'
+                                script.sh 'npm test --if-present -- --run'
 
-                            } else if (env.PROJECT_TYPE == 'java') {
+                            } else if (script.env.PROJECT_TYPE == 'java') {
 
-                                sh '''
+                                script.sh '''
                                     if [ -f pom.xml ]; then
                                         mvn test
                                     elif [ -f build.gradle ]; then
@@ -132,31 +121,24 @@ class UniversalPipeline implements Serializable {
                                     fi
                                 '''
 
-                            } else if (env.PROJECT_TYPE == 'python') {
+                            } else if (script.env.PROJECT_TYPE == 'python') {
 
-                                sh '''
+                                script.sh '''
                                     . .venv/bin/activate
                                     python -m pytest
                                 '''
-
-                            } else {
-                                echo "No test step configured."
                             }
                         }
-                    }
-                }
 
-                stage('Build') {
-                    steps {
-                        script {
+                        script.stage('Build') {
 
-                            if (env.PROJECT_TYPE == 'nodejs') {
+                            if (script.env.PROJECT_TYPE == 'nodejs') {
 
-                                sh 'npm run build --if-present'
+                                script.sh 'npm run build --if-present'
 
-                            } else if (env.PROJECT_TYPE == 'java') {
+                            } else if (script.env.PROJECT_TYPE == 'java') {
 
-                                sh '''
+                                script.sh '''
                                     if [ -f pom.xml ]; then
                                         mvn package -DskipTests
                                     elif [ -f build.gradle ]; then
@@ -164,30 +146,23 @@ class UniversalPipeline implements Serializable {
                                     fi
                                 '''
 
-                            } else if (env.PROJECT_TYPE == 'python') {
+                            } else if (script.env.PROJECT_TYPE == 'python') {
 
-                                echo "Python build completed."
-
-                            } else {
-                                echo "No build step configured."
+                                script.echo 'Python build completed.'
                             }
                         }
+
+                        script.echo "BUILD SUCCESS: ${appName}"
+
+                    } catch (Exception e) {
+
+                        script.echo "BUILD FAILED: ${appName}"
+                        throw e
+
+                    } finally {
+
+                        script.cleanWs()
                     }
-                }
-            }
-
-            post {
-
-                success {
-                    echo "BUILD SUCCESS: ${appName}"
-                }
-
-                failure {
-                    echo "BUILD FAILED: ${appName}"
-                }
-
-                always {
-                    cleanWs()
                 }
             }
         }
