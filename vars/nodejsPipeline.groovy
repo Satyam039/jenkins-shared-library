@@ -40,11 +40,13 @@ def call(Map config = [:]) {
                 }
             }
 
-            stage('Test') {
-                steps {
-                    sh 'npm test --if-present'
-                }
-            }
+           stage('Test') {
+    steps {
+        sh '''
+            npm test --if-present -- --run
+        '''
+    }
+}
 
             stage('Build') {
                 steps {
